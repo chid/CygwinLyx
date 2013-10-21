@@ -1,0 +1,34 @@
+CONFIG +=  release static stl mmx 3dnow sse sse2 sse3 ssse3 sse4_1 sse4_2 avx exceptions_off dylib create_prl link_prl depend_includepath fix_output_dirs QTDIR_build
+QT_SOURCE_TREE = $$quote(/usr/local/src/qtwin-4.7.4)
+QT_BUILD_TREE = $$quote(/usr/local/src/qtwin-4.7.4/build-cygwin)
+QT_BUILD_PARTS = libs tools examples demos docs translations
+QMAKE_ABSOLUTE_SOURCE_ROOT = $$QT_SOURCE_TREE
+QMAKE_MOC_SRC    = $$QT_BUILD_TREE/src/moc
+
+#local paths that cannot be queried from the QT_INSTALL_* properties while building QTDIR
+QMAKE_MOC        = $$QT_BUILD_TREE/bin/moc
+QMAKE_UIC        = $$QT_BUILD_TREE/bin/uic
+QMAKE_UIC3       = $$QT_BUILD_TREE/bin/uic3
+QMAKE_RCC        = $$QT_BUILD_TREE/bin/rcc
+QMAKE_QDBUSXML2CPP = $$QT_BUILD_TREE/bin/qdbusxml2cpp
+QMAKE_INCDIR_QT  = $$QT_BUILD_TREE/include
+QMAKE_LIBDIR_QT  = $$QT_BUILD_TREE/lib
+
+QMAKE_LFLAGS    = -Wl,-rpath-link,$$QT_BUILD_TREE/lib $$QMAKE_LFLAGS
+QT_LFLAGS_ODBC   = -lodbc
+QMAKESPEC = $$QT_BUILD_TREE/mkspecs/cygwin-g++-win32
+styles += cde mac motif plastique cleanlooks windows
+decorations += default windows styled
+mouse-drivers += pc
+kbd-drivers += tty
+styles += windowsxp windowsvista
+PRECOMPILED_DIR = .pch/release-static
+OBJECTS_DIR = .obj/release-static
+MOC_DIR = .moc/release-static
+RCC_DIR = .rcc/release-static
+UI_DIR = .uic/release-static
+QMAKE_CFLAGS += -fno-exceptions
+QMAKE_CXXFLAGS += -fno-exceptions
+QMAKE_LFLAGS += -fno-exceptions
+sql-drivers =  sqlite
+sql-plugins = 
