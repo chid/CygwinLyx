@@ -1,0 +1,114 @@
+#! /bin/sh
+
+# Configuration of the LyX sources suitable for compilation
+# of a Windows build using the cygwin compiler.
+
+# author Angus Leeming
+# author Enrico Forestieri
+
+Error () {
+    test $# -gt 0 && {
+        echo $* >&2
+        echo >&2
+    }
+
+    echo "Usage: `basename $0` lyxdir [-d] [--qtdir=qt4dir] [--suffix[=versfx]]" >&2
+    echo "where lyxdir is the LyX source directory, -d specifies a debug build," >&2
+    echo "qt4dir is the directory where your Qt4 library is installed, and" >&2
+    echo "versfx is 'none', 'default' or the version suffix to use." >&2
+    exit 1
+}
+
+BUILDTYPE=release
+SUFFIX=none
+QT4DIR=/usr/local/qt/4.7.4
+
+ARGS=`getopt -o dq:s:: --long debug,qtdir:,suffix:: \
+      -n 'lyxconfig-cygwin' -- "$@"`
+
+test $? != 0 && Error "Terminating..."
+
+eval set -- "$ARGS"
+
+while true ; do
+    case "$1" in
+	-d|--debug) BUILDTYPE=debug ; shift ;;
+	-q|--qtdir) QT4DIR=$2 ; shift 2 ;;
+	-s|--suffix) 
+	    case "$2" in
+		"") SUFFIX=default ; shift 2 ;;
+		*)  SUFFIX=$2 ; shift 2 ;;
+	    esac ;;
+	--) shift ; break ;;
+	*) echo "Internal error!" ; exit 1 ;;
+    esac
+done
+
+test $# -eq 1 || Error
+
+SRCDIR=$1
+test -d "${SRCDIR}" || Error "Directory '$SRCDIR' does not exist."
+test -s "${SRCDIR}/configure" || \
+    Error "'${SRCDIR}/configure' does not exist."
+
+test -d "$QT4DIR" || Error "The Qt4 directory '$QT4DIR' does not exist."
+
+case $SUFFIX in
+    none)    VERSION_SUFFIX='' ;;
+    default) VERSION_SUFFIX='--with-version-suffix' ;;
+    *)       VERSION_SUFFIX='--with-version-suffix=${SUFFIX}' ;;
+esac
+
+echo -n "Configuring ${SRCDIR} for building LyX"
+test -n "$VERSION_SUFFIX" && echo " with $SUFFIX version suffix" || \
+    echo "with no version suffix"
+
+FRONTEND="qt4"
+FRONTEND_FLAGS="--with-qt4-dir='${QT4DIR}'"
+BUILDDIR=${SRCDIR}/build-cygwin
+
+test "${BUILDDIR}" != "${SRCDIR}" -a ! -d "${BUILDDIR}" && {
+    mkdir "${BUILDDIR}" || Error "Unable to create build dir, ${BUILDDIR}."
+}
+
+CPPFLAGS="-pipe"
+LDFLAGS="-shared-libgcc -Wl,-enable-stdcall-fixup -Wl,-enable-auto-import"
+test "$BUILDTYPE" = "release" && {
+    OPTFLAG=""
+    LDFLAGS="$LDFLAGS -Wl,-s"
+    ASSERTIONS="--disable-assertions"
+    WARNINGS="--disable-warnings"
+} || {
+    OPTFLAG="-g"
+    ASSERTIONS="--enable-assertions"
+    WARNINGS="--enable-warnings"
+}
+
+CONFIGURE="../configure"
+sed -e 's/gl_have_weak=yes/gl_have_weak=no/' \
+    "${SRCDIR}/configure" > "${SRCDIR}/configure-cygwin"
+touch -r "${SRCDIR}/configure" "${SRCDIR}/configure-cygwin"
+mv -f "${SRCDIR}/configure-cygwin" "${SRCDIR}/configure"
+chmod u+x ${SRCDIR}/configure
+
+# Set up configure itself
+#========================
+CONFIGURE="${CONFIGURE} ${ASSERTIONS} ${WARNINGS} \
+--disable-shared --enable-static --disable-debug \
+--disable-stdlib-debug --enable-optimization='${OPTFLAG}' \
+--disable-pch --disable-concept-checks --without-x \
+--with-included-gettext --with-aspell ${VERSION_SUFFIX} \
+--with-frontend='${FRONTEND}' ${FRONTEND_FLAGS} \
+--with-extra-lib=/usr/local/lib \
+--prefix=/usr/local --mandir=/usr/local/man \
+CC='gcc-4' \
+CXX='g++-4' \
+CPPFLAGS='${CPPFLAGS}' \
+LDFLAGS='${LDFLAGS}'"
+
+echo "Build directory is ${BUILDDIR}"
+eval "echo \"${CONFIGURE}\""
+cd "${BUILDDIR}"
+eval "${CONFIGURE}"
+
+# The end
